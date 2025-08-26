@@ -1,0 +1,115 @@
+_schema-version: 3.3.0
+ID: ash_bookshop
+version: 1.0.0
+description: "A simple CAP project."
+parameters:
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npm ci
+        - npx cds build --production
+modules:
+  - name: ash_bookshop-srv
+    type: nodejs
+    path: gen/srv
+    parameters:
+      instances: 1
+      buildpack: nodejs_buildpack
+      routes:
+        - route: "${default-url}"
+        - route: "${default-host}.cert.${default-domain}"
+    build-parameters:
+      builder: npm-ci
+    provides:
+      - name: srv-api # required by consumers of CAP services (e.g. approuter)
+        properties:
+          srv-url: ${default-url}
+          srv-cert-url: '${protocol}://${default-host}.cert.${default-domain}'
+    requires:
+      - name: ash_bookshop-auth
+        parameters:
+          config:
+            credential-type: X509_GENERATED
+            app-identifier: srv
+      - name: ash_bookshop-db
+    deployed-after:
+      - ash_bookshop-ams-policies-deployer
+    properties:
+      AMS_DCL_ROOT: ams/dcl
+
+  - name: ash_bookshop
+    type: approuter.nodejs
+    path: app/router
+    requires:
+      - name: ash_bookshop-auth
+        parameters:
+          config:
+            credential-type: X509_GENERATED
+            app-identifier: approuter
+      - name: srv-api
+        group: destinations
+        properties:
+          url: ~{srv-cert-url}
+          forwardAuthCertificates: true
+          strictSSL: true
+    parameters:
+      keep-existing-routes: true
+      disk-quota: 256M
+      memory: 256M
+    provides:
+      - name: app-api
+        properties:
+          app-protocol: ${protocol}
+          app-uri: ${default-uri}
+
+  - name: ash_bookshop-ams-policies-deployer
+    type: javascript.nodejs
+    path: gen/policies
+    parameters:
+      buildpack: nodejs_buildpack
+      no-route: true
+      no-start: true
+      tasks:
+        - name: deploy-dcl
+          command: npm start
+          memory: 512M
+    requires:
+      - name: ash_bookshop-auth
+        parameters:
+          config:
+            credential-type: X509_GENERATED
+            app-identifier: ams-policy-deployer
+
+  - name: ash_bookshop-db-deployer
+    type: hdb
+    path: gen/db
+    parameters:
+      buildpack: nodejs_buildpack
+    requires:
+      - name: ash_bookshop-db
+
+resources:
+  - name: ash_bookshop-auth
+    type: org.cloudfoundry.managed-service
+    requires:
+      - name: app-api
+    parameters:
+      service: identity
+      service-name: ash_bookshop-auth
+      service-plan: application
+      config:
+        display-name: ash_bookshop
+        oauth2-configuration:
+          redirect-uris:
+            - ~{app-api/app-protocol}://*.~{app-api/app-uri}/login/callback
+          post-logout-redirect-uris:
+            - ~{app-api/app-protocol}://*.~{app-api/app-uri}/*/logout.html
+        authorization:
+          enabled: true
+  - name: ash_bookshop-db
+    type: com.sap.xs.hdi-container
+    parameters:
+      service: hana
+      service-plan: hdi-shared
