@@ -1,32 +1,51 @@
-<!DOCTYPE html>
+<!DOCTYPE HTML>
 <html>
+
 <head>
-
-	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-	<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>Bookshop</title>
-
-	<script>
-		window["sap-ushell-config"] = {
-			defaultRenderer: "fiori2",
-			applications: {}
-		};
-	</script>
-
-	<script id="sap-ushell-bootstrap" src="https://sapui5.hana.ondemand.com/test-resources/sap/ushell/bootstrap/sandbox.js"></script>
-    <script id="sap-ui-bootstrap" src="https://sapui5.hana.ondemand.com/resources/sap-ui-core.js"
-      data-sap-ui-libs="sap.m, sap.ushell, sap.collaboration, sap.ui.layout"
-      data-sap-ui-compatVersion="edge"
-      data-sap-ui-async="true"
-      data-sap-ui-preload="async"
-      data-sap-ui-theme="sap_horizon"
-      data-sap-ui-frameOptions="allow"
-    ></script>
-	<script>
-		sap.ui.getCore().attachInit(() => sap.ushell.Container.createRenderer().placeAt("content"))
-	</script>
-
+    <title> Project Preview </title>
+    <script src="https://ui5.sap.com/1.129.2/resources/sap-ui-core.js" 
+            id="sap-ui-bootstrap"
+            data-sap-ui-theme="sap_horizon"
+            data-sap-ui-bindingSyntax="complex" 
+            data-sap-ui-xx-bindingSyntax="complex"
+            data-sap-ui-resourceroots='{"assets": "assets"}' 
+            data-sap-ui-libs="sap.m,sap.uxap,sap.ui.layout,sap.f">
+    </script>
+    <link rel="stylesheet" href="assets/preview.css">
 </head>
-<body class="sapUiBody" id="content"></body>
+
+<body id="body" class="sapUiBody">
+    <script>
+        "use strict";
+        sap.ui.localResources("assets");
+        (function (jQuery, App, Page) {
+            sap.ui.getCore().attachInit(function () {
+                sap.ui.define([
+                    "sap/ui/core/mvc/Controller",
+                    "sap/ui/model/json/JSONModel"
+                ], function (Controller, JSONModel) {
+                    return Controller.extend("PreviewController", {
+                        onInit: function () {
+
+                            const data = {"Services":[{"ServiceName":"AdminService","DetailsURL":"./odata/v4/admin/","Metadata":"./odata/v4/admin/$metadata","Entities":[{"Name":"Books","URL":"./odata/v4/admin/Books","FioriURL":"$fiori-preview/AdminService/Books#preview-app"},{"Name":"Authors","URL":"./odata/v4/admin/Authors","FioriURL":"$fiori-preview/AdminService/Authors#preview-app"}],"EntitiesCount":2},{"ServiceName":"CatalogService","DetailsURL":"./odata/v4/catalog/","Metadata":"./odata/v4/catalog/$metadata","Entities":[{"Name":"ListOfBooks","URL":"./odata/v4/catalog/ListOfBooks","FioriURL":"$fiori-preview/CatalogService/ListOfBooks#preview-app"},{"Name":"Books","URL":"./odata/v4/catalog/Books","FioriURL":"$fiori-preview/CatalogService/Books#preview-app"}],"EntitiesCount":2}]}
+                            this.getView().setModel(new JSONModel(data));
+                        }
+                    });
+                });
+                var oApp = new App()
+                var previewView = sap.ui.view({
+                    viewName: "assets.Preview",
+                    type: sap.ui.core.mvc.ViewType.XML
+                });
+                oApp.addPage(new Page({
+                    content: [previewView],
+                    showHeader: false
+                })).placeAt("content");
+            });
+
+        }(jQuery, sap.m.App, sap.m.Page));
+    </script>
+    <div id="content"></div>
+</body>
+
 </html>
